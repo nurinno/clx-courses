@@ -62,52 +62,57 @@ const App = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
+      <SidebarProvider>
         <AppSidebar currentRoute={location.pathname} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="h-full p-6">
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  user ? (
-                    userRole === "admin" ? (
-                      <Navigate to="/admin-dashboard" replace={false} />
+        <div className="flex-1">
+          <main className="h-full overflow-y-auto">
+            <div className="container p-6">
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    user ? (
+                      userRole === "admin" ? (
+                        <Navigate to="/admin-dashboard" replace={false} />
+                      ) : (
+                        <Navigate to="/learner-dashboard" replace={false} />
+                      )
                     ) : (
-                      <Navigate to="/learner-dashboard" replace={false} />
+                      <Navigate to="/login" replace={false} />
                     )
-                  ) : (
-                    <Navigate to="/login" replace={false} />
-                  )
-                }
-              />
-              <Route
-                path="/admin-dashboard"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/manage-courses"
-                element={
-                  <AdminRoute>
-                    <ManageCourses />
-                  </AdminRoute>
-                }
-              />
-              <Route path="/learner-dashboard" element={
-                <ProtectedRoute>
-                  <LearnerDashboard />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+                  }
+                />
+                <Route
+                  path="/admin-dashboard"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/manage-courses"
+                  element={
+                    <AdminRoute>
+                      <ManageCourses />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/learner-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <LearnerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    </div>
   );
 };
 
