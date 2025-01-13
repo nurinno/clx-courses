@@ -13,17 +13,34 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, Home, BookOpen } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface AppSidebarProps {
   currentRoute: string;
 }
 
 const AppSidebar = ({ currentRoute }: AppSidebarProps) => {
-  console.log('Sidebar Route:', currentRoute);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const userEmail = user?.email || "User";
   const userAvatar = user?.photoURL || "/default-avatar.png";
+
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) return;
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        setIsAdmin(userDoc.exists() && userDoc.data().role === "admin");
+      } catch (error) {
+        console.error("Error checking admin role:", error);
+      }
+    };
+
+    checkAdminRole();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -40,27 +57,43 @@ const AppSidebar = ({ currentRoute }: AppSidebarProps) => {
   return (
     <Sidebar>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Admin Panel</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/admin-dashboard">
-                  <Home className="w-4 h-4" />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/manage-courses">
-                  <BookOpen className="w-4 h-4" />
-                  <span>Manage Courses</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
+        {isAdmin ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin Panel</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/admin-dashboard">
+                    <Home className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/manage-courses">
+                    <BookOpen className="w-4 h-4" />
+                    <span>Manage Courses</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        ) : (
+          <SidebarGroup>
+            <SidebarGroupLabel>Learner Panel</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/learner-dashboard">
+                    <Home className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
