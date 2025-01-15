@@ -26,9 +26,10 @@ import {
 
 interface CreateModuleDialogProps {
   courseId: string;
+  modulesCount: number;
 }
 
-export function CreateModuleDialog({ courseId }: CreateModuleDialogProps) {
+export function CreateModuleDialog({ courseId, modulesCount }: CreateModuleDialogProps) {
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -48,7 +49,7 @@ export function CreateModuleDialog({ courseId }: CreateModuleDialogProps) {
         title,
         description: description || "",
         deadline: deadline ? Timestamp.fromDate(deadline) : null,
-        order: 0,
+        order: modulesCount,
         createdAt: Timestamp.fromDate(new Date()),
         updatedAt: Timestamp.fromDate(new Date()),
       });

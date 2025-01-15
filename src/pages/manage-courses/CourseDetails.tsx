@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Course, Module } from "@/types/course";
+import type { Course, Module, Lesson } from "@/types/course";
 import { CreateModuleDialog } from "@/components/modules/CreateModuleDialog";
 import { Layers as LayersIcon, ChevronRight, MoreVertical, Trash2 } from "lucide-react";
 import { EditModuleDialog } from "@/components/modules/EditModuleDialog";
@@ -17,11 +17,13 @@ import { deleteDoc } from "firebase/firestore";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CalendarIcon } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { LessonList } from "@/components/lessons/LessonList";
 
 export default function CourseDetails() {
   const { courseId } = useParams();
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
+  const [lessonsByModule, setLessonsByModule] = useState<Record<string, Lesson[]>>({});
 
   useEffect(() => {
     if (!courseId) return;
@@ -51,11 +53,40 @@ export default function CourseDetails() {
         id: doc.id,
         ...doc.data(),
       })) as Module[];
-      setModules(modulesData);
+      setModules(modulesData.sort((a, b) => a.order - b.order));
     });
 
     return () => unsubscribe();
   }, [courseId]);
+
+  useEffect(() => {
+    if (!modules.length) return;
+
+    const moduleIds = modules.map(m => m.id);
+    const q = query(
+      collection(db, "lessons"),
+      where("moduleId", "in", moduleIds)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const lessonsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Lesson[];
+
+      const grouped = lessonsData.reduce((acc, lesson) => {
+        if (!acc[lesson.moduleId]) {
+          acc[lesson.moduleId] = [];
+        }
+        acc[lesson.moduleId].push(lesson);
+        return acc;
+      }, {} as Record<string, Lesson[]>);
+
+      setLessonsByModule(grouped);
+    });
+
+    return () => unsubscribe();
+  }, [modules]);
 
   const handleDeleteModule = async (moduleId: string) => {
     if (window.confirm("Are you sure you want to delete this module?")) {
@@ -82,7 +113,7 @@ export default function CourseDetails() {
           <ChevronRight className="h-5 w-5 mx-3" />
           <span className="font-semibold">{course.title}</span>
         </nav>
-        {modules.length > 0 && <CreateModuleDialog courseId={courseId!} />}
+        {modules.length > 0 && <CreateModuleDialog courseId={courseId!} modulesCount={modules.length} />}
       </div>
 
       {modules.length === 0 ? (
@@ -96,7 +127,7 @@ export default function CourseDetails() {
               Get started by creating your first module for this course.
             </p>
           </div>
-          <CreateModuleDialog courseId={courseId!} />
+          <CreateModuleDialog courseId={courseId!} modulesCount={0} />
         </div>
       ) : (
         <div className="space-y-4">
@@ -134,6 +165,10 @@ export default function CourseDetails() {
                     </div>
                   )}
                 </div>
+                <LessonList 
+                  moduleId={module.id} 
+                  lessons={lessonsByModule[module.id] || []} 
+                />
               </CardHeader>
             </Card>
           ))}
