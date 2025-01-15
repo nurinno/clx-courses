@@ -14,6 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteDoc } from "firebase/firestore";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CalendarIcon } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export default function CourseDetails() {
   const { courseId } = useParams();
@@ -98,33 +101,41 @@ export default function CourseDetails() {
       ) : (
         <div className="space-y-4">
           {modules.map((module) => (
-            <div key={module.id} className="p-4 border rounded-lg">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-semibold">{module.title}</h2>
-                  <p className="text-muted-foreground mt-1">{module.description}</p>
+            <Card key={module.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle>{module.title}</CardTitle>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[160px]">
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <EditModuleDialog module={module} />
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteModule(module.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Delete</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[160px]">
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <EditModuleDialog module={module} />
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDeleteModule(module.id)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span>Delete</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
+                <CardDescription className="mt-2">{module.description}</CardDescription>
+                <div className="flex flex-col gap-2 mt-4 text-sm text-muted-foreground">
+                  {module.deadline && (
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon className="h-4 w-4" />
+                      <span>Due {formatDate(module.deadline)}</span>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+            </Card>
           ))}
         </div>
       )}

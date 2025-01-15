@@ -6,7 +6,6 @@ import type { Course } from "@/types/course";
 import { collection, onSnapshot, query, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { format } from "date-fns";
 import { CalendarIcon, Users, Trash2, MoreVertical } from "lucide-react";
 
 import {
@@ -18,16 +17,7 @@ import {
 import { doc, deleteDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { EditCourseDialog } from "@/components/courses/EditCourseDialog";
-
-const formatDate = (date: Date | null | undefined) => {
-  if (!date) return "Not set";
-  try {
-    return format(date, 'PP');
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return "Invalid date";
-  }
-};
+import { formatDate } from "@/lib/utils";
 
 const ManageCourses = () => {
   useAuth();

@@ -34,14 +34,26 @@ export function EditModuleDialog({ module }: EditModuleDialogProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [title, setTitle] = useState(module.title);
   const [description, setDescription] = useState(module.description || "");
-  const [deadline, setDeadline] = useState<Date | undefined>(module.deadline);
+  const [deadline, setDeadline] = useState<Date | undefined>(() => {
+    if (!module.deadline) return undefined;
+    if ('seconds' in module.deadline) {
+      return new Date(module.deadline.seconds * 1000);
+    }
+    return module.deadline as Date;
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       setTitle(module.title);
       setDescription(module.description || "");
-      setDeadline(module.deadline);
+      if (!module.deadline) {
+        setDeadline(undefined);
+      } else if ('seconds' in module.deadline) {
+        setDeadline(new Date(module.deadline.seconds * 1000));
+      } else {
+        setDeadline(module.deadline as Date);
+      }
     }
   }, [open, module]);
 
@@ -67,14 +79,22 @@ export function EditModuleDialog({ module }: EditModuleDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(value) => {
-      if (calendarOpen) return;
-      setOpen(value);
-    }}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(value) => {
+        if (!value) {
+          if (calendarOpen) return;
+          setOpen(false);
+        } else {
+          setOpen(true);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <div 
-          className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-accent hover:text-accent-foreground"
+          className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-accent hover:text-accent-foreground cursor-pointer"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             setOpen(true);
           }}
@@ -83,7 +103,15 @@ export function EditModuleDialog({ module }: EditModuleDialogProps) {
           <span>Edit</span>
         </div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onPointerDownOutside={(e) => {
+          if (calendarOpen) {
+            e.preventDefault();
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>Edit Module</DialogTitle>
           <DialogDescription>
@@ -100,6 +128,7 @@ export function EditModuleDialog({ module }: EditModuleDialogProps) {
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
                 placeholder="Module title"
                 required
               />
@@ -110,6 +139,7 @@ export function EditModuleDialog({ module }: EditModuleDialogProps) {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
                 placeholder="Module description..."
               />
             </div>

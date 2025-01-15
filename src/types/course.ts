@@ -14,7 +14,7 @@ export interface Module {
   courseId: string;
   title: string;
   description: string;
-  deadline: Date;
+  deadline: Date | { seconds: number; nanoseconds: number } | null;
   order: number;
   createdAt: Date;
   updatedAt: Date;
