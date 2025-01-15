@@ -29,4 +29,21 @@ export interface Lesson {
   order: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface CourseStructure {
+  type: "course_structure";
+  data: {
+    title: string;
+    description: string;
+    modules: {
+      title: string;
+      description: string;
+      lessons: {
+        title: string;
+        description: string;
+      }[];
+    }[];
+  };
 } 
+

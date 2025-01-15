@@ -105,7 +105,9 @@ const ManageCourses = () => {
         </nav>
         <div className="flex gap-4">
           <CreateCourseDialog />
-          <Button>Create Course with AI</Button>
+          <Button onClick={() => navigate("/create-course-ai")}>
+            Create Course with AI
+          </Button>
         </div>
       </div>
 
