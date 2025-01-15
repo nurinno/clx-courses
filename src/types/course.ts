@@ -25,6 +25,7 @@ export interface Lesson {
   moduleId: string;
   title: string;
   description: string;
+  deadline: Date | null;
   order: number;
   createdAt: Date;
   updatedAt: Date;

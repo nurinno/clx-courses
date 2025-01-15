@@ -69,10 +69,16 @@ export default function CourseDetails() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const lessonsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Lesson[];
+      const lessonsData = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          deadline: data.deadline?.toDate() || null,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        };
+      }) as Lesson[];
 
       const grouped = lessonsData.reduce((acc, lesson) => {
         if (!acc[lesson.moduleId]) {
