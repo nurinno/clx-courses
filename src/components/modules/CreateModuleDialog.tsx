@@ -24,11 +24,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export function CreateCourseDialog() {
+interface CreateModuleDialogProps {
+  courseId: string;
+}
+
+export function CreateModuleDialog({ courseId }: CreateModuleDialogProps) {
   const [open, setOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date>(new Date());
   const [deadline, setDeadline] = useState<Date | undefined>();
   const [loading, setLoading] = useState(false);
 
@@ -38,37 +42,40 @@ export function CreateCourseDialog() {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, "courses"), {
+      const modulesRef = collection(db, "modules");
+      await addDoc(modulesRef, {
+        courseId,
         title,
         description: description || "",
-        startDate: Timestamp.fromDate(startDate),
         deadline: deadline ? Timestamp.fromDate(deadline) : null,
-        assignedUsers: [],
+        order: 0,
         createdAt: Timestamp.fromDate(new Date()),
         updatedAt: Timestamp.fromDate(new Date()),
       });
       setOpen(false);
       setTitle("");
       setDescription("");
-      setStartDate(new Date());
       setDeadline(undefined);
     } catch (error) {
-      console.error("Error creating course:", error);
+      console.error("Error creating module:", error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(value) => {
+      if (calendarOpen) return;
+      setOpen(value);
+    }}>
       <DialogTrigger asChild>
-        <Button>Create Course</Button>
+        <Button>Add Module</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Course</DialogTitle>
+          <DialogTitle>Create New Module</DialogTitle>
           <DialogDescription>
-            Create a new course and add modules and lessons later.
+            Add a new module to organize your course content.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -81,7 +88,7 @@ export function CreateCourseDialog() {
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Basics of Sales"
+                placeholder="Module title"
                 required
               />
             </div>
@@ -91,55 +98,36 @@ export function CreateCourseDialog() {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Course description..."
+                placeholder="Module description..."
               />
             </div>
             <div className="grid gap-2">
-              <Label>Start Date</Label>
-              <Popover>
+              <Label>Module End Date (Optional)</Label>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(startDate, "PPP")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={(date) => date && setStartDate(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid gap-2">
-              <Label>Course End Date (Optional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "justify-start text-left font-normal",
                       !deadline && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                    {deadline ? format(deadline, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" onInteractOutside={(e) => {
+                  e.preventDefault();
+                }}>
                   <Calendar
                     mode="single"
                     selected={deadline}
-                    onSelect={setDeadline}
+                    onSelect={(date) => {
+                      setDeadline(date);
+                      setCalendarOpen(false);
+                    }}
                     initialFocus
-                    fromDate={startDate}
                   />
                 </PopoverContent>
               </Popover>
@@ -147,11 +135,11 @@ export function CreateCourseDialog() {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading || !title}>
-              Create Course
+              Create Module
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
+} 

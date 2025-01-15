@@ -12,6 +12,7 @@ import LearnerDashboard from "./pages/learner-dashboard/LearnerDashboard";
 import { useEffect, useState } from "react";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import CourseDetails from "./pages/manage-courses/CourseDetails";
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -96,6 +97,14 @@ const App = () => {
                   element={
                     <AdminRoute>
                       <ManageCourses />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/manage-courses/:courseId"
+                  element={
+                    <AdminRoute>
+                      <CourseDetails />
                     </AdminRoute>
                   }
                 />

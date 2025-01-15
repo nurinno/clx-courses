@@ -27,12 +27,12 @@ import type { Course } from "@/types/course";
 
 interface EditCourseDialogProps {
   course: Course;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function EditCourseDialog({ course }: EditCourseDialogProps) {
+export function EditCourseDialog({ course, onOpenChange }: EditCourseDialogProps) {
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [endCalendarOpen, setEndCalendarOpen] = useState(false);
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description || "");
   const [startDate, setStartDate] = useState<Date>(course.startDate || new Date());
@@ -63,6 +63,7 @@ export function EditCourseDialog({ course }: EditCourseDialogProps) {
         updatedAt: Timestamp.fromDate(new Date()),
       });
       setOpen(false);
+      onOpenChange?.(false);
     } catch (error) {
       console.error("Error updating course:", error);
     } finally {
@@ -71,17 +72,36 @@ export function EditCourseDialog({ course }: EditCourseDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(value) => {
-      if (calendarOpen || endCalendarOpen) return;
-      setOpen(value);
-    }}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(value) => {
+        if (calendarOpen) return;
+        setOpen(value);
+        onOpenChange?.(value);
+      }}
+    >
       <DialogTrigger asChild>
-        <div className="flex items-center gap-2 w-full">
+        <div 
+          className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-accent hover:text-accent-foreground cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(true);
+          }}
+        >
           <Pencil className="h-4 w-4" />
           <span>Edit</span>
         </div>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onPointerDownOutside={(e) => {
+          if (calendarOpen) {
+            e.preventDefault();
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>Edit Course</DialogTitle>
           <DialogDescription>
@@ -118,15 +138,22 @@ export function EditCourseDialog({ course }: EditCourseDialogProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="justify-start text-left font-normal"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                    )}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {format(startDate, "PPP")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" onInteractOutside={(e) => {
-                  e.preventDefault();
-                }}>
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start"
+                  onInteractOutside={(e) => {
+                    e.preventDefault();
+                  }}
+                >
                   <Calendar
                     mode="single"
                     selected={startDate}
@@ -143,29 +170,36 @@ export function EditCourseDialog({ course }: EditCourseDialogProps) {
             </div>
             <div className="grid gap-2">
               <Label>Course End Date (Optional)</Label>
-              <Popover open={endCalendarOpen} onOpenChange={setEndCalendarOpen}>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
                     className={cn(
-                      "justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal",
                       !deadline && "text-muted-foreground"
                     )}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : "Pick a date"}
+                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" onInteractOutside={(e) => {
-                  e.preventDefault();
-                }}>
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start"
+                  onInteractOutside={(e) => {
+                    e.preventDefault();
+                  }}
+                >
                   <Calendar
                     mode="single"
                     selected={deadline}
                     onSelect={(date) => {
-                      setDeadline(date);
-                      setEndCalendarOpen(false);
+                      if (date) {
+                        setDeadline(date);
+                        setCalendarOpen(false);
+                      }
                     }}
                     initialFocus
                     fromDate={startDate}

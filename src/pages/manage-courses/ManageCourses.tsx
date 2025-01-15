@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
 import { CalendarIcon, Users, Trash2, MoreVertical } from "lucide-react";
-import { EditCourseDialog } from "@/components/courses/EditCourseDialog";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { doc, deleteDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { EditCourseDialog } from "@/components/courses/EditCourseDialog";
 
 const formatDate = (date: Date | null | undefined) => {
   if (!date) return "Not set";
@@ -30,6 +32,7 @@ const formatDate = (date: Date | null | undefined) => {
 const ManageCourses = () => {
   useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("Setting up courses listener");
@@ -71,7 +74,9 @@ const ManageCourses = () => {
   return (
     <div className="h-full">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Manage Courses</h1>
+        <nav className="flex items-center text-lg">
+          <span className="font-semibold">Manage Courses</span>
+        </nav>
         <div className="flex gap-4">
           <CreateCourseDialog />
           <Button>Create Course with AI</Button>
@@ -85,22 +90,43 @@ const ManageCourses = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={course.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={(e) => {
+                if (!e.defaultPrevented) {
+                  navigate(`/manage-courses/${course.id}`);
+                }
+              }}
+            >
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <CardTitle>{course.title}</CardTitle>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
                       <Button variant="ghost" size="icon">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-[160px]">
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <EditCourseDialog course={course} />
+                      <DropdownMenuItem asChild>
+                        <EditCourseDialog 
+                          course={course} 
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              const dropdownTrigger = document.querySelector('[data-state="open"]');
+                              if (dropdownTrigger instanceof HTMLElement) {
+                                dropdownTrigger.click();
+                              }
+                            }
+                          }} 
+                        />
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDeleteCourse(course.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeleteCourse(course.id);
+                        }}
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
