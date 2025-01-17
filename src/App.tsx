@@ -70,68 +70,64 @@ const App = () => {
         {location.pathname !== "/create-course-ai" && (
           <AppSidebar currentRoute={location.pathname} />
         )}
-        <div className="flex-1">
-          <main className={cn("h-full overflow-y-auto", {
-            "container p-6": location.pathname !== "/create-course-ai"
-          })}>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  user ? (
-                    userRole === "admin" ? (
-                      <Navigate to="/admin-dashboard" replace={false} />
-                    ) : (
-                      <Navigate to="/learner-dashboard" replace={false} />
-                    )
+        <main className="h-full w-full overflow-y-auto p-6">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                user ? (
+                  userRole === "admin" ? (
+                    <Navigate to="/admin-dashboard" replace={false} />
                   ) : (
-                    <Navigate to="/login" replace={false} />
+                    <Navigate to="/learner-dashboard" replace={false} />
                   )
-                }
-              />
-              <Route
-                path="/admin-dashboard"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/manage-courses"
-                element={
-                  <AdminRoute>
-                    <ManageCourses />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/manage-courses/:courseId"
-                element={
-                  <AdminRoute>
-                    <CourseDetails />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/learner-dashboard"
-                element={
-                  <ProtectedRoute>
-                    <LearnerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route 
-                path="/create-course-ai" 
-                element={
-                  <AdminRoute>
-                    <CreateCourseAIPage />
-                  </AdminRoute>
-                } 
-              />
-            </Routes>
-          </main>
-        </div>
+                ) : (
+                  <Navigate to="/login" replace={false} />
+                )
+              }
+            />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/manage-courses"
+              element={
+                <AdminRoute>
+                  <ManageCourses />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/manage-courses/:courseId"
+              element={
+                <AdminRoute>
+                  <CourseDetails />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/learner-dashboard"
+              element={
+                <ProtectedRoute>
+                  <LearnerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/create-course-ai" 
+              element={
+                <AdminRoute>
+                  <CreateCourseAIPage />
+                </AdminRoute>
+              } 
+            />
+          </Routes>
+        </main>
       </SidebarProvider>
     </div>
   );

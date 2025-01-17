@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2, ArrowLeft } from "lucide-react";
@@ -8,6 +7,8 @@ import { streamWithClaude } from "@/lib/claude";
 import { useToast } from "@/hooks/use-toast";
 import { CoursePreview } from "./CoursePreview";
 import { useNavigate } from "react-router-dom";
+import { Textarea } from "@/components/ui/textarea";
+import { marked } from 'marked';
 
 interface Message {
   role: "assistant" | "user";
@@ -43,6 +44,15 @@ export function CreateCourseAIPage() {
   const [courseStructure, setCourseStructure] = useState<CourseStructure | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     setMessages([
@@ -161,67 +171,107 @@ export function CreateCourseAIPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <header className="px-6 py-4 border-b bg-background flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/manage-courses")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-lg font-semibold">Create Course with AI</h1>
-          <p>Chat with AI to automatically generate a structured course outline.</p>
-        </div>
-      </header>
-      {courseStructure ? (
-        <div className="flex-1 overflow-y-auto px-6">
-          <CoursePreview
-            courseStructure={courseStructure.data}
-            onConfirm={createCourse}
-            onCancel={() => setCourseStructure(null)}
-            isCreating={isCreating}
-          />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="flex flex-col gap-4">
+    <div className="w-full h-full flex justify-center">
+      <div className="w-3/5 max-w-3xl flex flex-col h-full">
+        <header className="px-6 py-4 border-b bg-background flex items-center gap-4 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/manage-courses")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-lg font-semibold">Create Course with AI</h1>
+            <p>Chat with AI to automatically generate a structured course outline.</p>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
+          <div className="flex flex-col gap-4 w-full">
             {messages.map((message, index) => (
               <div
                 key={index}
                 className={`flex ${
                   message.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                } w-full`}
               >
                 <div
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                  className={`rounded-lg px-4 py-2 max-w-[80%] prose prose-sm ${
                     message.role === "user"
-                      ? "bg-primary text-primary-foreground ml-auto"
+                      ? "bg-primary text-primary-foreground ml-auto prose-invert"
                       : "bg-muted mr-auto"
                   }`}
-                >
-                  {message.content}
-                </div>
+                  style={{
+                    overflowWrap: 'break-word',
+                    wordWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    maxWidth: '500px'
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: marked(message.content)
+                  }}
+                />
               </div>
             ))}
+            {courseStructure && (
+              <div className="flex justify-start w-full">
+                <div className="bg-muted rounded-lg p-4 mr-auto" style={{ maxWidth: '500px' }}>
+                  <CoursePreview courseStructure={courseStructure.data} />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
         </div>
-      )}
-      <footer className="border-t p-6 bg-background">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={loading}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
-          </Button>
-        </form>
-      </footer>
+        <footer className="border-t p-6 bg-background shrink-0">
+          {courseStructure ? (
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setCourseStructure(null)} 
+                disabled={isCreating}
+                className="flex-1"
+              >
+                Modify
+              </Button>
+              <Button 
+                onClick={createCourse} 
+                disabled={isCreating}
+                className="flex-1"
+              >
+                {isCreating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Create Course"
+                )}
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex items-center gap-2">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                disabled={loading || isCreating}
+                className="flex-1 min-h-[40px]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+              />
+              <Button 
+                type="submit" 
+                disabled={loading || isCreating} 
+                className="h-10 flex items-center justify-center"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+              </Button>
+            </form>
+          )}
+        </footer>
+      </div>
     </div>
   );
-} 
+}

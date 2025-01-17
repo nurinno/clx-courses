@@ -98,7 +98,7 @@ const ManageCourses = () => {
   };
 
   return (
-    <div className="h-full">
+    <div className="w-full h-full flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <nav className="flex items-center text-lg">
           <span className="font-semibold">Manage Courses</span>
@@ -112,7 +112,7 @@ const ManageCourses = () => {
       </div>
 
       {courses.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-[calc(100%-theme(spacing.24))] gap-4">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <div className="p-4 bg-muted rounded-full">
             <BookOpen className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -124,7 +124,7 @@ const ManageCourses = () => {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
             <Card 
               key={course.id} 
