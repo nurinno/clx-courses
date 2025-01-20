@@ -14,6 +14,7 @@ import { getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import CourseDetails from "./pages/manage-courses/CourseDetails";
 import { CreateCourseAIPage } from "@/components/courses/CreateCourseAIDialog";
+import LessonDetailsPage from "@/pages/manage-courses/LessonDetailsPage";
 import { cn } from "@/lib/utils";
 
 const App = () => {
@@ -24,6 +25,7 @@ const App = () => {
 
   useEffect(() => {
     const checkUserRole = async () => {
+      
       if (!user) return;
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -67,10 +69,14 @@ const App = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <SidebarProvider>
-        {location.pathname !== "/create-course-ai" && (
+        {location.pathname !== "/create-course-ai" && 
+         !location.pathname.startsWith("/manage-courses/lessons/") && (
           <AppSidebar currentRoute={location.pathname} />
         )}
-        <main className="h-full w-full overflow-y-auto p-6">
+        <main className={cn(
+          "h-full w-full overflow-y-auto",
+          !location.pathname.startsWith("/manage-courses/lessons/") && "p-6"
+        )}>
           <Routes>
             <Route
               path="/"
@@ -123,6 +129,14 @@ const App = () => {
               element={
                 <AdminRoute>
                   <CreateCourseAIPage />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/manage-courses/lessons/:lessonId" 
+              element={
+                <AdminRoute>
+                  <LessonDetailsPage />
                 </AdminRoute>
               } 
             />

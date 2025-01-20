@@ -45,5 +45,22 @@ export interface CourseStructure {
       }[];
     }[];
   };
-} 
+}
+
+export interface Step {
+  id: string;
+  lessonId: string;
+  name: string;
+  content: string;
+  order: number;
+  quiz?: Quiz;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Quiz {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+}
 

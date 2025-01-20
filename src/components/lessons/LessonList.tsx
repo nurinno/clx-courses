@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, Trash2, CalendarIcon, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useNavigate } from "react-router-dom";
 
 interface LessonListProps {
   moduleId: string;
@@ -39,6 +40,7 @@ export function LessonList({ moduleId, lessons }: LessonListProps) {
   const [editingDescription, setEditingDescription] = useState("");
   const [editingDeadline, setEditingDeadline] = useState<Date | undefined>();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const navigate = useNavigate();
 
   const sortedLessons = [...lessons].sort((a, b) => a.order - b.order);
 
@@ -195,17 +197,30 @@ export function LessonList({ moduleId, lessons }: LessonListProps) {
                       </div>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteLesson(lesson.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/manage-courses/lessons/${lesson.id}`);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteLesson(lesson.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
             )}
