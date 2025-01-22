@@ -5,7 +5,37 @@ const anthropic = new Anthropic({
   dangerouslyAllowBrowser: true
 });
 
-const SYSTEM_PROMPT = `You are an expert course creator. Your task is to help users create well-structured courses with modules and lessons. Follow these steps:
+interface StreamWithClaudeParams {
+  messages: { role: string; content: string }[];
+  system?: string;
+}
+
+export async function* streamWithClaude({ messages, system }: StreamWithClaudeParams) {
+  try {
+    const response = await anthropic.messages.create({
+      messages: messages.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      })),
+      system: system || SYSTEM_PROMPT,
+      model: 'claude-3-sonnet-20240229',
+      max_tokens: 4000,
+      stream: true,
+    });
+
+    for await (const chunk of response) {
+      if (chunk.type === 'content_block_delta' && 'text' in chunk.delta) {
+        yield chunk.delta.text;
+      }
+    }
+  } catch (error) {
+    console.error('Error while calling the API:', error);
+    throw error;
+  }
+}
+
+// Default system prompt for course creation
+export const SYSTEM_PROMPT = `You are an expert course creator. Your task is to help users create well-structured courses with modules and lessons. Follow these steps:
 
 1. Maintain context from the entire conversation to provide consistent and relevant responses.
 
@@ -50,27 +80,3 @@ Would you like to make any changes to this structure?"
     ]
   }
 }`;
-
-export async function* streamWithClaude(messages: { role: string; content: string }[]) {
-  try {
-    const response = await anthropic.messages.create({
-      messages: messages.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      })),
-      system: SYSTEM_PROMPT,
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 4000,
-      stream: true,
-    });
-
-    for await (const chunk of response) {
-      if (chunk.type === 'content_block_delta' && 'text' in chunk.delta) {
-        yield chunk.delta.text;
-      }
-    }
-  } catch (error) {
-    console.error('Error while calling the API:', error);
-    throw error;
-  }
-}

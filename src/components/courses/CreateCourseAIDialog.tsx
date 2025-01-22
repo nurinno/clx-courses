@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { streamWithClaude } from "@/lib/claude";
+import { streamWithClaude, SYSTEM_PROMPT } from "@/lib/claude";
 import { useToast } from "@/hooks/use-toast";
 import { CoursePreview } from "./CoursePreview";
 import { useNavigate } from "react-router-dom";
@@ -132,7 +132,10 @@ export function CreateCourseAIPage() {
 
     try {
       let aiResponse = '';
-      const stream = streamWithClaude(messages.concat(userMessage));
+      const stream = streamWithClaude({
+        messages: messages.concat(userMessage),
+        system: SYSTEM_PROMPT
+      });
       
       // Create a temporary message for streaming
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
@@ -146,6 +149,7 @@ export function CreateCourseAIPage() {
         ]);
       }
 
+      // Only try to parse if it looks like a course structure
       if (aiResponse.includes('"type": "course_structure"')) {
         try {
           const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
@@ -160,11 +164,14 @@ export function CreateCourseAIPage() {
         }
       }
     } catch (error) {
+      console.error("Error with Claude:", error);
       toast({
         title: "Error",
         description: "Failed to get AI response. Please try again.",
         variant: "destructive",
       });
+      // Remove the temporary message on error
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }

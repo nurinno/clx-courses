@@ -3,20 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Step } from "@/types/course";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 
 interface StepEditorProps {
-  lessonId: string;
   step?: Step;
-  stepsCount: number;
   onClose: () => void;
+  onDelete?: (stepId: string) => void;
+  index?: number;
 }
 
-export function StepEditor({ lessonId, step, stepsCount, onClose }: StepEditorProps) {
+export function StepEditor({ 
+  step, 
+  onClose, 
+  onDelete,
+  index 
+}: StepEditorProps) {
   const [name, setName] = useState(step?.name || "");
   const [content, setContent] = useState(step?.content || "");
   const [question, setQuestion] = useState(step?.quiz?.question || "");
@@ -46,15 +53,26 @@ export function StepEditor({ lessonId, step, stepsCount, onClose }: StepEditorPr
     setOptions(newOptions);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleDelete = async () => {
+    if (!step || !onDelete) return;
+    
+    if (window.confirm("Are you sure you want to delete this step?")) {
+      try {
+        await deleteDoc(doc(db, "steps", step.id));
+        onDelete(step.id);
+      } catch (error) {
+        console.error("Error deleting step:", error);
+      }
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!step) return;
 
     const stepData = {
-      lessonId,
       name: name.trim(),
-      content: content.trim() || "",
-      order: step?.order ?? stepsCount,
+      content: content.trim(),
       quiz: question.trim() && correctAnswer
         ? {
             question: question.trim(),
@@ -66,14 +84,7 @@ export function StepEditor({ lessonId, step, stepsCount, onClose }: StepEditorPr
     };
 
     try {
-      if (step) {
-        await updateDoc(doc(db, "steps", step.id), stepData);
-      } else {
-        await addDoc(collection(db, "steps"), {
-          ...stepData,
-          createdAt: new Date(),
-        });
-      }
+      await updateDoc(doc(db, "steps", step.id), stepData);
       onClose();
     } catch (error) {
       console.error("Error saving step:", error);
@@ -83,84 +94,114 @@ export function StepEditor({ lessonId, step, stepsCount, onClose }: StepEditorPr
   return (
     <Card>
       <CardContent className="p-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Step Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter step name"
-              required
-            />
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="grid gap-2 flex-1">
+              <Label htmlFor="name">Step {index ? index + 1 : ""}</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter step name"
+                required
+              />
+            </div>
+            {step && onDelete && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="ml-4"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="content">Content</TabsTrigger>
-              <TabsTrigger value="quiz">Quiz</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full justify-start border-b rounded-none h-12 bg-transparent p-0">
+              <TabsTrigger 
+                value="content" 
+                className={cn(
+                  "rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent",
+                  "px-4 h-12"
+                )}
+              >
+                Content
+              </TabsTrigger>
+              <TabsTrigger 
+                value="quiz" 
+                className={cn(
+                  "rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent",
+                  "px-4 h-12"
+                )}
+              >
+                Quiz
+              </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="content" className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="content">Content</Label>
-                <RichTextEditor
-                  content={content}
-                  onChange={setContent}
-                />
-              </div>
+            <TabsContent value="content" className="space-y-4 mt-4">
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Enter step content"
+                rows={15}
+              />
             </TabsContent>
 
-            <TabsContent value="quiz" className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="question">Question</Label>
-                <Input
-                  id="question"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Enter quiz question"
-                />
-              </div>
+            <TabsContent value="quiz" className="space-y-4 mt-4">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="question">Question</Label>
+                  <Input
+                    id="question"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder="Enter quiz question"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label>Options</Label>
-                {options.map((option, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={option}
-                      onChange={(e) => handleUpdateOption(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
-                    />
+                <div className="space-y-2">
+                  <Label>Options</Label>
+                  {options.map((option, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={option}
+                        onChange={(e) => handleUpdateOption(index, e.target.value)}
+                        placeholder={`Option ${index + 1}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleRemoveOption(index)}
+                        disabled={options.length <= 2}
+                      >
+                        ×
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={correctAnswer === option ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCorrectAnswer(option)}
+                        disabled={!option.trim()}
+                      >
+                        Correct
+                      </Button>
+                    </div>
+                  ))}
+                  {options.length < 5 && (
                     <Button
                       type="button"
                       variant="outline"
-                      size="icon"
-                      onClick={() => handleRemoveOption(index)}
-                      disabled={options.length <= 2}
-                    >
-                      ×
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={correctAnswer === option ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setCorrectAnswer(option)}
-                      disabled={!option.trim()}
+                      onClick={handleAddOption}
                     >
-                      Correct
+                      Add Option
                     </Button>
-                  </div>
-                ))}
-                {options.length < 5 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddOption}
-                  >
-                    Add Option
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>

@@ -1,6 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -71,6 +73,83 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%}
+
+  .prose-full {
+    @apply prose max-w-none w-full;
+  }
+
+  .ProseMirror {
+    @apply w-full outline-none cursor-text;
+  }
+
+  .ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-muted-foreground;
+    content: "Start typing...";
+    float: left;
+    pointer-events: none;
+    height: 0;
+  }
+
+  .ProseMirror > * + * {
+    @apply mt-4;
+  }
+
+  .ProseMirror ul,
+  .ProseMirror ol {
+    @apply pl-4;
+  }
+
+  .ProseMirror ul {
+    @apply list-disc;
+  }
+
+  .ProseMirror ol {
+    @apply list-decimal;
+  }
+
+  .ProseMirror h1 {
+    @apply text-4xl font-bold mt-8 mb-4;
+  }
+
+  .ProseMirror h2 {
+    @apply text-3xl font-bold mt-8 mb-4;
+  }
+
+  .ProseMirror h3 {
+    @apply text-2xl font-bold mt-6 mb-4;
+  }
+
+  .ProseMirror h4 {
+    @apply text-xl font-bold mt-6 mb-4;
+  }
+
+  .ProseMirror blockquote {
+    @apply pl-4 border-l-4 border-muted italic my-4;
+  }
+
+  .ProseMirror code {
+    @apply bg-muted px-1.5 py-0.5 rounded font-mono text-sm;
+  }
+
+  .ProseMirror pre {
+    @apply bg-muted p-4 rounded-lg my-4 overflow-x-auto;
+  }
+
+  .ProseMirror pre code {
+    @apply bg-transparent p-0 text-sm;
+  }
+
+  .ProseMirror img {
+    @apply max-w-full h-auto rounded-lg;
+  }
+
+  .ProseMirror hr {
+    @apply my-4 border-t border-border;
+  }
+
+  .ProseMirror a {
+    @apply text-primary underline decoration-primary decoration-1 underline-offset-2 hover:decoration-2;
+  }
 }
 @layer base {
   * {

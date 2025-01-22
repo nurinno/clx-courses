@@ -1,11 +1,10 @@
 module.exports = {
   rules: {
-    'property-no-vendor-prefix': null,
-    'property-no-unknown': [
+    'at-rule-no-unknown': [
       true,
       {
-        ignoreProperties: ['-webkit-appearance']
+        ignoreAtRules: ['tailwind', 'apply']
       }
     ]
   }
-} 
+};
