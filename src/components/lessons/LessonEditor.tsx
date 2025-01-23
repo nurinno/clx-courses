@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical, Pencil, Trash2, Check, X, ArrowLeft, Sparkles } from "lucide-react";
-import { collection, query, where, onSnapshot, orderBy, addDoc, doc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy, addDoc, doc, updateDoc, deleteDoc, writeBatch, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Step, Lesson } from "@/types/course";
 import { cn } from "@/lib/utils";
-import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { QuizEditor } from "@/components/quiz/QuizEditor";
 import {
   DndContext,
@@ -26,7 +25,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { AIChatOverlay } from "./AIChatOverlay";
+import { AIChatOverlay, LessonContext } from "./LessonAIChatOverlay";
+import { StepSuggestion } from "@/types/lesson";
+import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 
 interface SortableStepItemProps {
   step: Step;
@@ -176,7 +179,9 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
   const [steps, setSteps] = useState<Step[]>([]);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [isAIOverlayOpen, setIsAIOverlayOpen] = useState(false);
+  const [lessonContext, setLessonContext] = useState<LessonContext | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -207,7 +212,7 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
     });
 
     return () => unsubscribe();
-  }, [lesson.id, selectedStepId]);
+  }, [lesson.id]);
 
   const handleCreateStep = async () => {
     try {
@@ -279,10 +284,17 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
     }
   };
 
-  const handleAcceptAISuggestions = async (suggestions: any[]) => {
+  const handleAcceptAISuggestions = async (suggestions: StepSuggestion[]) => {
     const batch = writeBatch(db);
     
     try {
+      // Delete existing steps if any
+      const deletePromises = steps.map(step => 
+        deleteDoc(doc(db, "steps", step.id))
+      );
+      await Promise.all(deletePromises);
+
+      // Add new steps
       for (let i = 0; i < suggestions.length; i++) {
         const suggestion = suggestions[i];
         const docRef = doc(collection(db, "steps"));
@@ -291,16 +303,106 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
           lessonId: lesson.id,
           name: suggestion.title,
           content: suggestion.content,
-          quiz: suggestion.quiz,
-          order: steps.length + i,
+          quiz: suggestion.quiz ? {
+            question: suggestion.quiz.question,
+            options: suggestion.quiz.options,
+            correctAnswer: suggestion.quiz.options[Number(suggestion.quiz.correctOption)] || ""
+          } : null,
+          order: i,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
       }
       
       await batch.commit();
+      setIsAIOverlayOpen(false);
+      
+      toast({
+        title: "Success!",
+        description: `Created ${suggestions.length} new steps`,
+        variant: "default",
+      });
     } catch (error) {
       console.error("Error creating AI-generated steps:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create steps",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchLessonContext = async () => {
+    try {
+      // First get module ID from lesson
+      const moduleId = lesson.moduleId;
+      if (!moduleId) {
+        console.error("Lesson is missing moduleId:", lesson);
+        return null;
+      }
+
+      // Get module document
+      const moduleDoc = await getDoc(doc(db, "modules", moduleId));
+      if (!moduleDoc.exists()) {
+        console.error("Module not found:", moduleId);
+        return null;
+      }
+      const moduleData = moduleDoc.data();
+      const courseId = moduleData.courseId;
+      
+      // Validate course ID
+      if (!courseId) {
+        console.error("Module is missing courseId:", moduleId);
+        return null;
+      }
+
+      // Get course document
+      const courseDoc = await getDoc(doc(db, "courses", courseId));
+      if (!courseDoc.exists()) {
+        console.error("Course not found:", courseId);
+        return null;
+      }
+      const courseData = courseDoc.data();
+
+      // Get other lessons in module
+      const lessonsQuery = query(
+        collection(db, "lessons"),
+        where("moduleId", "==", moduleId),
+        orderBy("order")
+      );
+      const lessonsSnapshot = await getDocs(lessonsQuery);
+      
+      return {
+        courseId: courseId,
+        lessonId: lesson.id,
+        courseName: courseData.title || "Unnamed Course",
+        courseDescription: courseData.description || "",
+        moduleInfo: {
+          name: moduleData.title || "Unnamed Module",
+          description: moduleData.description || ""
+        },
+        otherLessons: lessonsSnapshot.docs
+          .filter(d => d.id !== lesson.id) // Exclude current lesson
+          .map(d => ({
+            name: d.data().title,
+            description: d.data().description || ""
+          })),
+        currentLesson: {
+          name: lesson.title,
+          description: lesson.description || ""
+        }
+      };
+    } catch (error) {
+      console.error("Error fetching lesson context:", error);
+      return null;
+    }
+  };
+
+  const handleOpenAIOverlay = async () => {
+    const context = await fetchLessonContext();
+    if (context) {
+      setLessonContext(context);
+      setIsAIOverlayOpen(true);
     }
   };
 
@@ -326,7 +428,7 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
           <Button
             variant="default"
             size="sm"
-            onClick={() => setIsAIOverlayOpen(true)}
+            onClick={handleOpenAIOverlay}
             className="bg-black hover:bg-black/90 text-white"
           >
             <Sparkles className="h-4 w-4 mr-2" />
@@ -376,23 +478,18 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
           {/* Editor Section */}
           <div className="flex-1 min-w-0 border rounded-lg bg-card">
             {selectedStep ? (
-              <div className="h-full flex flex-col">
-                <div className="p-4 border-b">
-                  <h3 className="font-semibold">
-                    Edit content for Step {steps.findIndex(s => s.id === selectedStep.id) + 1}: {selectedStep.name}
-                  </h3>
-                </div>
-                <div className="flex-1 p-4">
-                  <RichTextEditor
-                    content={selectedStep.content}
-                    onChange={async (content) => {
-                      await updateDoc(doc(db, "steps", selectedStep.id), {
-                        content,
-                        updatedAt: new Date()
-                      });
-                    }}
-                  />
-                </div>
+              <div className="h-full flex flex-col border rounded-lg overflow-hidden">
+                <RichTextEditor
+                  key={selectedStep.id}
+                  content={selectedStep.content}
+                  onChange={async (content) => {
+                    await updateDoc(doc(db, "steps", selectedStep.id), {
+                      content: content,
+                      updatedAt: new Date()
+                    });
+                  }}
+                  className="h-full"
+                />
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -429,20 +526,60 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
         </div>
       </div>
 
-      {isAIOverlayOpen && (
+      {isAIOverlayOpen && lessonContext && (
         <AIChatOverlay
           isOpen={isAIOverlayOpen}
           onClose={() => setIsAIOverlayOpen(false)}
           onAcceptSuggestions={handleAcceptAISuggestions}
-          lessonContext={{
-            courseId: lesson.courseId,
-            lessonId: lesson.id,
-            courseName: lesson.courseName || "",
-            lessonName: lesson.title,
-          }}
+          lessonContext={lessonContext}
           width="1300px"
           height="700px"
         />
+      )}
+    </div>
+  );
+}
+
+export default function MarkdownEditor({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  const [editMode, setEditMode] = useState<"edit" | "preview">("edit");
+
+  return (
+    <div className={cn("flex flex-col h-full", className)}>
+      <div className="flex gap-2 mb-2">
+        <Button
+          variant={editMode === "edit" ? "default" : "ghost"}
+          onClick={() => setEditMode("edit")}
+          size="sm"
+        >
+          Edit
+        </Button>
+        <Button
+          variant={editMode === "preview" ? "default" : "ghost"}
+          onClick={() => setEditMode("preview")}
+          size="sm"
+        >
+          Preview
+        </Button>
+      </div>
+      
+      {editMode === "edit" ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 p-4 font-mono text-sm bg-background rounded-lg border"
+        />
+      ) : (
+        <div className="prose prose-sm dark:prose-invert max-w-none flex-1 overflow-auto">
+          <ReactMarkdown>{value}</ReactMarkdown>
+        </div>
       )}
     </div>
   );

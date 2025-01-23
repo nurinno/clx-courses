@@ -80,6 +80,14 @@ module.exports = {
                         'code::after': {
                             content: '""',
                         },
+                        h3: {
+                            fontSize: '1.25rem',
+                            marginTop: '1.5rem',
+                            marginBottom: '1rem'
+                        },
+                        ul: {
+                            marginBottom: '1rem'
+                        }
                     },
                 },
             }
