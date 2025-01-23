@@ -30,6 +30,7 @@ import { StepSuggestion } from "@/types/lesson";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { LessonPreview } from "./LessonPreview";
 
 interface SortableStepItemProps {
   step: Step;
@@ -180,6 +181,7 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [isAIOverlayOpen, setIsAIOverlayOpen] = useState(false);
   const [lessonContext, setLessonContext] = useState<LessonContext | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -425,15 +427,22 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
               <p className="text-sm text-muted-foreground">Add and manage steps and quizzes</p>
             </div>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleOpenAIOverlay}
-            className="bg-black hover:bg-black/90 text-white"
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Generate with AI
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPreview(true)}
+            >
+              Preview Lesson
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleOpenAIOverlay}
+              className="bg-black hover:bg-black/90 text-white gap-1"
+            >
+              <Sparkles className="h-4 w-4" />
+              AI Assist
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-6 p-6 flex-1 min-h-0">
@@ -534,6 +543,14 @@ export function LessonEditor({ lesson }: { lesson: Lesson }) {
           lessonContext={lessonContext}
           width="1300px"
           height="700px"
+        />
+      )}
+
+      {showPreview && (
+        <LessonPreview
+          lesson={lesson}
+          steps={steps}
+          onClose={() => setShowPreview(false)}
         />
       )}
     </div>
