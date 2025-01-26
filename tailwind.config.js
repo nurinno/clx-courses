@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ["class"],
-    content: ['./src/**/*.{html,js}'],
+    content: ['./src/**/*.{js,jsx,ts,tsx}'],
     theme: {
         extend: {
             borderRadius: {
@@ -93,5 +93,8 @@ module.exports = {
             }
         }
     },
-    plugins: [],
+    plugins: [
+        require('@tailwindcss/typography'),
+        require('tailwindcss-animate')
+    ],
 };
